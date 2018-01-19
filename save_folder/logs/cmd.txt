@@ -1,0 +1,1 @@
+run_hmdb51_img_train.py --dataset=hmdb51_img --model=resnet-32

@@ -1,0 +1,6 @@
+filename,type,name
+cmd.txt,plain,Commands
+train_ce.csv,csv,Train Loss (Cross Entropy)
+train_acc.csv,csv,Train Accuracy
+valid_acc.csv,csv,Validation Accuracy
+learn_rate.csv,csv,Learning Rate

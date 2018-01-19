@@ -1,0 +1,2 @@
+model_checkpoint_path: "/media/lci/storage/Video/revnet-video/save_folder/model.ckpt-1"
+all_model_checkpoint_paths: "/media/lci/storage/Video/revnet-video/save_folder/model.ckpt-1"

@@ -1,0 +1,56 @@
+class DataSet(object):
+    """
+    Loads data and Keeps track of dataset, data paths, image height/width, channels, number of data/classes 
+    """
+    def __init__(self, datadir, 
+                batchsize, testbatchsize, data_percent=1, 
+                augment=True, dataset="hmdb51_img", scaled_size=0, dataset_stand=True):
+        
+        self._use_dct = False # Just hard coded for now. TODO: Make flag
+
+        assert datadir is not None
+        assert batchsize is not None
+        assert testbatchsize is not None
+
+        if not os.path.exists(datadir):
+            os.makedirs(datadir)
+        
+        self._dataset = dataset
+        self._datadir = datadir
+        self._data_percent = data_percent
+        self._batchsize = batchsize
+        self._test_batchsize = testbatchsize
+        self._augment = augment
+        self._rescale = not not scaled_size
+        self._dataset_stand = dataset_stand
+       
+
+        if self._dataset == "hmdb51_img":
+            
+            print("HMDB51 RGB dataset is used now")
+            
+            self._height = 56
+            self._width = 56
+            self._channels = 3
+            self._num_train = 3570
+            self._num_test = 1530
+            self._num_classes = 51
+            self._padding = 0
+
+        else: 
+            raise Exception("Dataset: %s has not been implemented yet. Please check spelling." % dataset)
+
+
+def get_hmdb51_batch(self, batchsize, seq_len, testing=False):
+  """Reads and parses HMDB51 batches from HMDB51 data files"""
+  mode = 'test' if testing else 'train'
+  images, labels, _, _, _ = input_data_c3d.read_clip_and_label(
+                    filename='./data_list/HMDB51/list1/%s.list' % mode,
+                    batch_size = batchsize,
+                    num_frames_per_clip = seq_len,
+                    crop_size = 56,
+                    shuffle = True)
+  
+  return np.squeeze(images), labels
+
+
