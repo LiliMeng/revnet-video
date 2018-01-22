@@ -1,4 +1,4 @@
-.pyc
+*.pyc
 dataset
 logs/
 results/
