@@ -4,13 +4,13 @@ from __future__ import (absolute_import, division, print_function,
 import numpy as np
 import tensorflow as tf
 
-from resnet.data import ucf101_img_input
+from resnet.data import hmdb51_input
 from resnet.utils import logger
 
 log = logger.get()
 
 
-class UCF101_IMG_Dataset():
+class HMDB51_Dataset():
 
   def __init__(self,
                config,
@@ -22,7 +22,7 @@ class UCF101_IMG_Dataset():
                whiten=False,
                div255=False):
     self.split = split
-    self.data = ucf101_img_input.read_UCF101_IMG(folder)
+    self.data = hmdb51_input.read_hmdb51(folder)
     num_ex = config.num_train_imgs
     self.split_idx = np.arange(num_ex)
     rnd = np.random.RandomState(0)
@@ -36,7 +36,7 @@ class UCF101_IMG_Dataset():
         [self.split_idx[:valid_start], self.split_idx[valid_end:]])
     if data_aug or whiten:
       with tf.device("/cpu:0"):
-        self.inp_preproc, self.out_preproc = ucf101_img_input.ucf101_tf_preprocess(
+        self.inp_preproc, self.out_preproc = hmdb51_input.hmdb51_tf_preprocess(
             random_crop=data_aug, random_flip=data_aug, whiten=whiten, config=config)
       self.session = tf.Session()
     self.data_aug = data_aug

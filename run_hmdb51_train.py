@@ -2,7 +2,7 @@
 """
 
 Usage:
-python run_cifar_train.py    --model           [MODEL NAME]          \
+python run_hmdb51_train.py    --model           [MODEL NAME]          \
                              --config          [CONFIG FILE]         \
                              --env             [ENV FILE]            \
                              --dataset         [DATASET]             \

@@ -21,7 +21,7 @@ def unpickle(file):
   return dict
 
 
-def read_UCF101_IMG(data_folder):
+def read_hmdb51(data_folder):
   """ Reads and parses examples from CIFAR10 data files """
 
   train_img = np.load(os.path.join(data_folder, 'train_imgs.npy'))
@@ -38,16 +38,16 @@ def read_UCF101_IMG(data_folder):
 
   mean_img = np.mean(np.concatenate([train_img, test_img]), axis=0)
 
-  ucf101_img_data = {}
-  ucf101_img_data["train_img"] = train_img - mean_img
-  ucf101_img_data["test_img"] = test_img - mean_img
-  ucf101_img_data["train_label"] = train_label
-  ucf101_img_data["test_label"] = test_label
+  hmdb51_data = {}
+  hmdb51_data["train_img"] = train_img - mean_img
+  hmdb51_data["test_img"] = test_img - mean_img
+  hmdb51_data["train_label"] = train_label
+  hmdb51_data["test_label"] = test_label
 
-  return ucf101_img_data
+  return hmdb51_data
 
 
-def ucf101_tf_preprocess(config, random_crop=True, random_flip=True, whiten=True):
+def hmdb51_tf_preprocess(config, random_crop=True, random_flip=True, whiten=True):
   img_width = config.width
   img_height = config.height
   
