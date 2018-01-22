@@ -71,8 +71,15 @@ class ResNetModel(object):
 
     # Input.
     if inp is None:
+      if config.rgb_only == True:
+        num_channel = config.num_rgb_channel
+      elif config.optflow_only == True:
+        num_channel = config.num_optflow_channel
+      else:
+        raise Exception("Not implemented yet")
+
       x = tf.placeholder(
-          dtype, [batch_size, config.height, config.width, config.num_channel],
+          dtype, [batch_size, config.height, config.width, num_channel],
           "x")
     else:
       x = inp
@@ -164,9 +171,15 @@ class ResNetModel(object):
     activate_before_residual = config.activate_before_residual
     filters = [ff for ff in config.filters]  # Copy filter config.
     init_filter = config.init_filter
+    if config.rgb_only == True:
+      num_channel = config.num_rgb_channel
+    elif config.optflow_only == True:
+      num_channel = config.num_optflow_channel
+    else:
+      raise Exception("Not implemented yet")
 
     with tf.variable_scope("init"):
-      h = self._conv("init_conv", x, init_filter, self.config.num_channel,
+      h = self._conv("init_conv", x, init_filter, num_channel,
                      filters[0], self._stride_arr(config.init_stride))
       h = self._batch_norm("init_bn", h)
       h = self._relu("init_relu", h)

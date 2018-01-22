@@ -36,8 +36,17 @@ class HMDB51_Dataset():
         [self.split_idx[:valid_start], self.split_idx[valid_end:]])
     if data_aug or whiten:
       with tf.device("/cpu:0"):
-        self.inp_preproc, self.out_preproc = hmdb51_input.hmdb51_tf_preprocess(
-            random_crop=data_aug, random_flip=data_aug, whiten=whiten, config=config)
+        if config.rgb_only == True:
+          self.inp_preproc, self.out_preproc = hmdb51_input.hmdb51_rgb_preprocess(
+              random_crop=data_aug, random_flip=data_aug, whiten=whiten, config=config)
+        elif config.optflow_only == True:
+          self.inp_preproc, self.out_preproc = hmdb51_input.hmdb51_optflow_preprocess(
+              random_crop=data_aug, random_flip=data_aug, whiten=whiten, config=config)
+        elif config.double_stream == True:
+          raise Exception("double stream Not implemented yet")
+        else:
+          raise Exception("double stream not implemented yet")
+
       self.session = tf.Session()
     self.data_aug = data_aug
     self.whiten = whiten

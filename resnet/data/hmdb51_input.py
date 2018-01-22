@@ -47,11 +47,32 @@ def read_hmdb51(data_folder):
   return hmdb51_data
 
 
-def hmdb51_tf_preprocess(config, random_crop=True, random_flip=True, whiten=True):
+def hmdb51_optflow_preprocess(config, random_crop=True, random_flip=True, whiten=True):
   img_width = config.width
   img_height = config.height
   
-  inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_channel])
+  inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_optflow_channel])
+
+  image = inp
+  # image = tf.cast(inp, tf.float32)
+  if random_flip:
+    log.info("Apply random flipping")
+    image = tf.image.random_flip_left_right(image)
+  # Brightness/saturation/constrast provides small gains .2%~.5% on cifar.
+  # image = tf.image.random_brightness(image, max_delta=63. / 255.)
+  # image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+  # image = tf.image.random_contrast(image, lower=0.2, upper=1.8)
+  if whiten:
+    log.info("Apply whitening")
+    image = tf.image.per_image_whitening(image)
+  return inp, image
+
+
+def hmdb51_rgb_preprocess(config, random_crop=True, random_flip=True, whiten=True):
+  img_width = config.width
+  img_height = config.height
+  
+  inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_rgb_channel])
 
   image = inp
   # image = tf.cast(inp, tf.float32)
