@@ -52,8 +52,7 @@ def hmdb51_tf_preprocess(config, random_crop=True, random_flip=True, whiten=True
   img_height = config.height
   
   inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_channel])
-  print("config.num_channel")
-  print config.num_channel
+
   image = inp
   # image = tf.cast(inp, tf.float32)
   if random_flip:
