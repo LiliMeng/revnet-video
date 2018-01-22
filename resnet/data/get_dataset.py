@@ -5,8 +5,8 @@ from resnet.data.cifar10 import CIFAR10Dataset
 from resnet.data.cifar100 import CIFAR100Dataset
 from resnet.utils.batch_iter import BatchIterator
 from resnet.utils.concurrent_batch_iter import ConcurrentBatchIterator
-from resnet.data.ucf101_op import UCF101_OP_Dataset
-from resnet.data.ucf101_img import UCF101_IMG_Dataset
+from resnet.data.hmdb51 import HMDB51_Dataset
+
 
 path_op = "/media/lci/storage/Video/candice/revnet_video/dataset/op_txtfiles"
 path_img = "/media/lci/storage/Video/candice/revnet_video/dataset/img_txtfiles"
@@ -56,8 +56,8 @@ def get_dataset(name,
         num_worker=20,
         queue_size=300,
         num_batches=num_batches)
-  elif name == "ucf101-op":
-    dp = UCF101_OP_Dataset(
+  elif name == "hmdb51-op":
+    dp = HMDB51_Dataset(
       config=config, split=split, folder=path_op, data_aug=data_aug, whiten=False, div255=False)
     return get_iter(
         dp,
@@ -69,8 +69,8 @@ def get_dataset(name,
         num_worker=20,
         queue_size=300,
         num_batches=num_batches)
-  elif name == "ucf101-img":
-    dp = UCF101_IMG_Dataset(
+  elif name == "hmdb51-img":
+    dp = HMDB51_Dataset(
       config=config, split=split, folder=path_img, data_aug=data_aug, whiten=False, div255=False)
     return get_iter(
         dp,

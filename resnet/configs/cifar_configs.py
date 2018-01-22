@@ -58,7 +58,7 @@ class ResNet110Config(ResNet32Config):
     self.batch_size = 100
     self.height = 56
     self.width = 56
-    self.num_channel = 3
+    self.num_channel = 10
     self.min_lrn_rate = 1e-5
     self.base_learn_rate = 1e-2
     self.seed = 1234
