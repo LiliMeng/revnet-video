@@ -51,8 +51,8 @@ class ResNet32Config(object):
     self.num_test_imgs = 1530
 
     # Flags for setting up the rgb or optflow
-    self.rgb_only = True
-    self.optflow_only = False
+    self.rgb_only = False
+    self.optflow_only = True
     self.double_stream = False
 
 @RegisterConfig("resnet-110")
