@@ -45,7 +45,8 @@ class ResNetModel(object):
                config,
                is_training=True,
                inference_only=False,
-               inp=None,
+               inp_img=None,
+               inp_op = None,
                label=None,
                dtype=tf.float32,
                batch_size=None,
@@ -70,19 +71,33 @@ class ResNetModel(object):
     self._dilated = False
 
     # Input.
-    if inp is None:
-      x = tf.placeholder(
-          dtype, [batch_size, config.height, config.width, config.num_channel],
-          "x")
+    if inp_img is None:
+      x_img = tf.placeholder(
+          dtype, [batch_size, config.height, config.width, config.img_num_channel],
+          "x_img")
     else:
-      x = inp
+      x_img = inp_img
+
+    if inp_op is None:
+      x_op = tf.placeholder(
+          dtype, [batch_size, config.height, config.width, config.op_num_channel],
+          "x_op")
+    else:
+      x_op = inp_op
+    
 
     if label is None:
       y = tf.placeholder(tf.int32, [batch_size], "y")
     else:
       y = label
 
-    logits = self.build_inference_network(x)
+    if config.rgb_only == True or config.optflow_only == True:
+      logits = self.build_inference_network(x)
+    elif config.double_stream == True:
+      logits = self.build_double_stream_network(x_img, x_op)
+    else:
+      raise Exception("Not implemented yet")
+
     predictions = tf.nn.softmax(logits)
 
     with tf.variable_scope("costs"):
@@ -93,11 +108,8 @@ class ResNetModel(object):
       cost += self._decay()
 
     self._cost = cost
-    self._input = x
-    # Make sure that the labels are in reasonable range.
-    # with tf.control_dependencies(
-    #     [tf.assert_greater_equal(y, 0), tf.assert_less(y, config.num_classes)]):
-    #   self._label = tf.identity(y)
+    self._input_img = x_img
+    self._input_op  = x_op
     self._label = y
     self._cross_ent = xent
     self._output = predictions
@@ -155,6 +167,141 @@ class ResNetModel(object):
       var_list = tf.trainable_variables()
     grads = tf.gradients(cost, var_list, gate_gradients=True)
     return zip(grads, var_list)
+
+  def build_double_stream_network(self, x_img, x_op):
+    config = self.config 
+    is_training = self.is_training
+    num_stages = len(self.config.num_residual_units)
+    strides = config.strides
+    activate_before_residual = config.activate_before_residual
+    filters = [ff for ff in config.filters] # Copy filter config.
+    init_filter = config.init_filter
+
+    with tf.variable_scope("init_rgb"):
+      h1 = self._conv("init_conv", x_img, init_filter, config.img_num_channel,
+                      filters[0]//2, self._stride_arr(config.init_stride))
+      h1 = self._batch_norm("init_bn", h1)
+      h1 = self._relu("init_relu", h1)
+
+    with tf.variable_scope("init_op"):
+      h2 = self._conv("init_conv", x_op, init_filter, config.op_num_channel,
+                      filters[0]//2, self._stride_arr(config.init_stride))
+      h2 = self._batch_norm("init_bn", h2)
+      h2 = self._relu("init_relu", h2)
+
+    h = tf.concat([h1,h2],axis=3)
+
+    if config.rgb_only == True or config.optflow_only == True:
+      res_func = self._residual
+    elif config.double_stream == True:
+      res_func = self._residual_double_stream
+    else:
+      raise Exception("Not implemented yet")
+
+    # New version, single for-loop. Easier for checkpoint.
+    nlayers = sum(config.num_residual_units)
+    ss = 0
+    ii = 0
+    for ll in range(nlayers):
+      # Residual unit configuration.
+      if ss == 0 and ii == 0:
+        no_activation = True
+      else:
+        no_activation = False
+      if ii == 0:
+        if ss == 0:
+          no_activation = True
+        else:
+          no_activation = False
+        in_filter = filters[ss]
+        stride = self._stride_arr(strides[ss])
+      else:
+        in_filter = filters[ss + 1]
+        stride = self._stride_arr(1)
+      out_filter = filters[ss + 1]
+
+      #Save hidden state.
+    
+      if ii == 0:
+        self._saved_hidden.append(h)
+
+      # Build residual unit.
+      with tf.variable_scope("unit_{}_{}".format(ss + 1, ii)):
+            h = res_func(
+            h,
+            in_filter,
+            out_filter,
+            stride,
+            no_activation=no_activation,
+            add_bn_ops=True)
+
+      if (ii + 1) % config.num_residual_units[ss] == 0:
+        ss += 1
+        ii = 0
+      else:
+        ii += 1
+
+    h = tf.concat([h1, h2], axis=3)
+   
+    # Save hidden state.
+    self._saved_hidden.append(h)
+
+    # Make a single tensor.
+    if type(h) == tuple:
+      h = concat(h, axis=3)
+
+    with tf.variable_scope("unit_last"):
+      h = self._batch_norm("final_bn", h)
+      h = self._relu("final_relu", h)
+
+    h = self._global_avg_pool(h)
+
+    # Classification layer.
+    with tf.variable_scope("logit"):
+      logits = self._fully_connected(h, config.num_classes)
+
+    return logits
+
+
+  def _residual_double_stream(self,
+                x,
+                in_filter,
+                out_filter,
+                stride,
+                no_activation=False,
+                concat=False,
+                add_bn_ops=True):
+    """Residual unit with 2 sub layers.
+    Args:
+      x: [N, H, W, Ci]. Input activation.
+      in_filter: Int. Input number of channels.
+      out_filter: Int. Output number of channels.
+      stride: Int. Size of the strided convolution.
+      no_activation: Bool. Whether to run through BN+ReLU first.
+    Returns:
+      y: [N, H, W, Cout]. Output activation.
+    """
+    x1, x2 = self._split(concat, in_filter, x)
+    with tf.variable_scope("f"):
+      f_x2 = self._residual_inner(
+          x2,
+          in_filter // 2,
+          out_filter // 2,
+          stride,
+          no_activation=no_activation,
+          add_bn_ops=add_bn_ops)
+    x1_ = self._possible_downsample(x1, in_filter // 2, out_filter // 2, stride)
+    x2_ = self._possible_downsample(x2, in_filter // 2, out_filter // 2, stride)
+    y1 = f_x2 + x1_
+    with tf.variable_scope("g"):
+      f_y1 = self._residual_inner(
+          y1,
+          out_filter // 2,
+          out_filter // 2,
+          self._stride_arr(1),
+          add_bn_ops=add_bn_ops)
+    y2 = f_y1 + x2_
+    return self._combine(concat, y1, y2)
 
   def build_inference_network(self, x):
     config = self.config
@@ -244,6 +391,22 @@ class ResNetModel(object):
       logits = self._fully_connected(h, config.num_classes)
 
     return logits
+
+  def _combine(self, concat, *argv):
+    if concat:
+      y = _concat(list(argv), axis=3)
+    else:
+      y = tuple(argv)
+    return y
+
+  def _split(self, concat, n_filter, x):
+    if concat or type(x) != tuple:
+      x1 = x[:, :, :, :n_filter // 2]
+      x2 = x[:, :, :, n_filter // 2:]
+    else:
+      x1, x2 = x
+    return x1, x2
+
 
   def _weight_variable(self,
                        shape,
@@ -465,12 +628,30 @@ class ResNetModel(object):
     # assert x.get_shape().ndims == 4
     return tf.reduce_mean(x, [1, 2])
 
-  def infer_step(self, sess, inp=None):
+  def infer_step_img(self, sess, inp=None):
     """Run inference."""
     if inp is None:
       feed_data = None
     else:
-      feed_data = {self.input: inp}
+      feed_data = {self.input_img: inp}
+    return sess.run(self.output, feed_dict=feed_data)
+
+  def infer_step_op(self, sess, inp=None):
+    """Run inference."""
+    if inp is None:
+      feed_data = None
+    else:
+      feed_data = {self.input_op: inp}
+    return sess.run(self.output, feed_dict=feed_data)
+
+  def infer_step_double_stream(self, sess, inp_img=None, inp_op=None):
+    """Run inference for the double stream"""
+    if inp_img is None and inp_op is None:
+      feed_data = None
+    elif inp_img is not None and inp_op is not None:
+      feed_data = {self.input_img: inp_img, self.input_op: inp_op}
+    else:
+      raise Exception("Not implemented yet")
     return sess.run(self.output, feed_dict=feed_data)
 
   def eval_step(self, sess, inp=None, label=None):
@@ -484,14 +665,42 @@ class ResNetModel(object):
       feed_data = None
     return sess.run(self.correct)
 
-  def train_step(self, sess, inp=None, label=None):
+  def train_step_img(self, sess, inp=None, label=None):
     """Run training."""
     if inp is not None and label is not None:
-      feed_data = {self.input: inp, self.label: label}
+      feed_data = {self.input_img: inp, self.label: label}
     elif inp is not None:
-      feed_data = {self.input: inp}
+      feed_data = {self.input_img: inp}
     elif label is not None:
       feed_data = {self.label: label}
+    else:
+      feed_data = None
+    results = sess.run([self.cross_ent, self.train_op] + self.bn_update_ops,
+                       feed_dict=feed_data)
+    return results[0]
+
+  def train_step_op(self, sess, inp=None, label=None):
+    """Run training."""
+    if inp is not None and label is not None:
+      feed_data = {self.input_op: inp, self.label: label}
+    elif inp is not None:
+      feed_data = {self.input_op: inp}
+    elif label is not None:
+      feed_data = {self.label: label}
+    else:
+      feed_data = None
+    results = sess.run([self.cross_ent, self.train_op] + self.bn_update_ops,
+                       feed_dict=feed_data)
+    return results[0]
+
+  def train_step_double_stream(self, sess, inp_img=None, label_img=None, inp_op=None, label_op=None):
+    """Run training."""
+    if inp_img is not None and inp_op is not None and label_img is not None:
+      feed_data = {self.input_img: inp_img, self.input_op: inp_op, self.label: label_img}
+    elif inp_img is not None and inp_op is not None:
+      feed_data = {self.input_img: inp_img, self.input_op: inp_op}
+    elif label_img is not None:
+      feed_data = {self.label: label_img}
     else:
       feed_data = None
     results = sess.run([self.cross_ent, self.train_op] + self.bn_update_ops,
@@ -523,8 +732,12 @@ class ResNetModel(object):
     return self._dtype
 
   @property
-  def input(self):
-    return self._input
+  def input_img(self):
+    return self._input_img
+
+  @property
+  def input_op(self):
+    return self._input_op
 
   @property
   def output(self):

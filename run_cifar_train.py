@@ -95,6 +95,7 @@ def _get_models(config):
 
 def train_step(sess, model, batch):
   """Train step."""
+  if 
   return model.train_step(sess, batch["img"], batch["label"])
 
 

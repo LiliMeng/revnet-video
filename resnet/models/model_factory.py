@@ -30,7 +30,8 @@ def get_model(model_name,
               inference_only=False,
               num_pass=1,
               num_node=1,
-              inp=None,
+              inp_img=None,
+              inp_op = None,
               label=None,
               batch_size=None):
   """Gets a model instance from predefined library.
@@ -63,7 +64,7 @@ def get_model(model_name,
     return MODEL_REGISTRY[key](*args, **kwargs)
 
   if num_pass > 1:
-    return MultiPassModelV2(
+    return _get_model(
         config_copy,
         _get_model,
         is_training=is_training,
@@ -83,7 +84,8 @@ def get_model(model_name,
   return _get_model(
       config_copy,
       is_training=is_training,
-      inp=inp,
+      inp_img=inp_img,
+      inp_op = inp_op,
       label=label,
       inference_only=inference_only,
       batch_size=batch_size,

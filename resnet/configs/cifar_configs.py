@@ -12,7 +12,8 @@ class ResNet32Config(object):
     self.batch_size = 15
     self.height = 56
     self.width = 56
-    self.num_channel = 3
+    self.img_num_channel =3
+    self.op_num_channel = 10
     self.min_lrn_rate = 1e-6
     self.base_learn_rate = 1e-1
     self.num_residual_units = [3, 3, 3, 3]  # ResNet-32
@@ -48,6 +49,11 @@ class ResNet32Config(object):
 
     self.num_train_imgs = 3570
     self.num_test_imgs = 1530
+
+    # Flags for setting up the rgb or optflow
+    self.rgb_only = False
+    self.optflow_only = False
+    self.double_stream = True
 
 @RegisterConfig("resnet-110")
 class ResNet110Config(ResNet32Config):

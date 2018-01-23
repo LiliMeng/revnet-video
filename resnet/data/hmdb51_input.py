@@ -25,10 +25,10 @@ def read_hmdb51(data_folder):
   """ Reads and parses examples from CIFAR10 data files """
 
   train_img = np.load(os.path.join(data_folder, 'train_imgs.npy'))
-  #train_label = genfromtxt(os.path.join(data_folder, 'train_labels.txt'), delimiter = ",")
+ 
   train_label = np.load(os.path.join(data_folder, 'train_labels.npy'))
   test_img = np.load(os.path.join(data_folder, 'test_imgs.npy'))
-  #test_label = genfromtxt(os.path.join(data_folder, 'test_labels.txt'), delimiter = ",")
+
   test_label = np.load(os.path.join(data_folder, 'test_labels.npy'))
 
   print(train_img.shape)
@@ -51,9 +51,9 @@ def hmdb51_tf_preprocess(config, random_crop=True, random_flip=True, whiten=True
   img_width = config.width
   img_height = config.height
   
-  inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_channel])
-
-  image = inp
+  inp_img = tf.placeholder(tf.float32, [img_height, img_width, config.img_num_channel])
+  inp_op  = tf.placeholder(tf.float32, [img_height, img_width, config.op_num_channel])
+  image = inp_img
   # image = tf.cast(inp, tf.float32)
   if random_flip:
     log.info("Apply random flipping")
@@ -65,4 +65,4 @@ def hmdb51_tf_preprocess(config, random_crop=True, random_flip=True, whiten=True
   if whiten:
     log.info("Apply whitening")
     image = tf.image.per_image_whitening(image)
-  return inp, image
+  return inp_img, image, inp_op, inp_op

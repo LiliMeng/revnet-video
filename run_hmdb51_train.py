@@ -91,19 +91,31 @@ def _get_models(config):
   return m, mvalid
 
 
-def train_step(sess, model, batch):
+def train_step(sess, config, model, batch):
   """Train step."""
-  return model.train_step(sess, batch["img"], batch["label"])
+  if config.rgb_only == True:
+    return model.train_step_img(sess, batch["img_data"], batch["img_label"])
+  elif config.optflow_only == True:
+    return model.train_step_op(sess, batch["op_data"], batch_op["label"])
+  elif config.double_stream == True:
+    return model.train_step_double_stream(sess, batch["img_data"], batch["img_label"], batch["op_data"], batch["op_label"])
 
 
-def evaluate(sess, model, data_iter):
+def evaluate(sess, config, model, data_iter):
   """Runs evaluation."""
   num_correct = 0.0
   count = 0
   for batch in data_iter:
-    y = model.infer_step(sess, batch["img"])
+    if config.rgb_only == True: 
+      y = model.infer_step_img(sess, batch["img_data"])
+    elif config.optflow_only == True:
+      y = model.infer_step_op(sess, batch["op_data"])
+    elif config.double_stream == True:
+      y = model.infer_step_double_stream(sess, batch["img_data"], batch["op_data"])
+    else:
+      raise Exception("Not implemented yet")
     pred_label = np.argmax(y, axis=1)
-    num_correct += np.sum(np.equal(pred_label, batch["label"]).astype(float))
+    num_correct += np.sum(np.equal(pred_label, batch["img_label"]).astype(float))
     count += pred_label.size
   acc = (num_correct / count)
   return acc
@@ -184,7 +196,7 @@ def train_model(exp_id,
 
       for niter in tqdm(range(niter_start, config.max_train_iter), desc=exp_id):
         lr_scheduler.step(niter)
-        ce = train_step(sess, m, train_iter.next())
+        ce = train_step(sess, config, m, train_iter.next())
 
         if (niter + 1) % config.disp_iter == 0 or niter == 0:
           exp_logger.log_train_ce(niter, ce)
@@ -192,10 +204,10 @@ def train_model(exp_id,
         if (niter + 1) % config.valid_iter == 0 or niter == 0:
           if trainval_iter is not None:
             trainval_iter.reset()
-            acc = evaluate(sess, mvalid, trainval_iter)
+            acc = evaluate(sess, config, mvalid, trainval_iter)
             exp_logger.log_train_acc(niter, acc)
           test_iter.reset()
-          acc = evaluate(sess, mvalid, test_iter)
+          acc = evaluate(sess, config, mvalid, test_iter)
           exp_logger.log_valid_acc(niter, acc)
 
         if (niter + 1) % config.save_iter == 0 or niter == 0:
@@ -203,7 +215,7 @@ def train_model(exp_id,
           exp_logger.log_learn_rate(niter, m.lr.eval())
 
       test_iter.reset()
-      acc = evaluate(sess, mvalid, test_iter)
+      acc = evaluate(sess, config, mvalid, test_iter)
   return acc
 
 

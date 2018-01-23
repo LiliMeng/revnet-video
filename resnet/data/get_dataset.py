@@ -6,6 +6,7 @@ from resnet.data.cifar100 import CIFAR100Dataset
 from resnet.utils.batch_iter import BatchIterator
 from resnet.utils.concurrent_batch_iter import ConcurrentBatchIterator
 from resnet.data.hmdb51 import HMDB51_Dataset
+from resnet.data.hmdb51_img_op import HMDB51_img_op_Dataset
 
 
 path_op = "./dataset/op_txtfiles"
@@ -79,6 +80,20 @@ def get_dataset(name,
         shuffle=shuffle,
         cycle=cycle,
         prefetch=prefetch,
+        num_worker=20,
+        queue_size=300,
+        num_batches=num_batches)
+  elif name == "hmdb51-img-op":
+    dp = HMDB51_img_op_Dataset(
+      config=config, split=split, img_folder=path_img, op_folder=path_op, data_aug=data_aug, whiten=False, div255=False)
+    print ("dataset hahhahha")
+    return get_iter(
+        dp,
+        batch_size = config.batch_size,
+        config=config,
+        shuffle=shuffle,
+        cycle=cycle,
+        prefetch = prefetch,
         num_worker=20,
         queue_size=300,
         num_batches=num_batches)
