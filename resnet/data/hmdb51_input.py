@@ -25,10 +25,10 @@ def read_hmdb51(data_folder):
   """ Reads and parses examples from CIFAR10 data files """
 
   train_img = np.load(os.path.join(data_folder, 'train_imgs.npy'))
-  #train_label = genfromtxt(os.path.join(data_folder, 'train_labels.txt'), delimiter = ",")
+ 
   train_label = np.load(os.path.join(data_folder, 'train_labels.npy'))
   test_img = np.load(os.path.join(data_folder, 'test_imgs.npy'))
-  #test_label = genfromtxt(os.path.join(data_folder, 'test_labels.txt'), delimiter = ",")
+
   test_label = np.load(os.path.join(data_folder, 'test_labels.npy'))
 
   print(train_img.shape)
@@ -47,42 +47,12 @@ def read_hmdb51(data_folder):
   return hmdb51_data
 
 
-def hmdb51_preprocess(config, random_crop=True, random_flip=True, whiten=True):
+def hmdb51_tf_preprocess(config, random_crop=True, random_flip=True, whiten=True):
   img_width = config.width
   img_height = config.height
   
-  if config.rgb_only == True:
-    inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_rgb_channel])
-  elif config.optflow_only == True:
-    inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_optflow_channel])
-  else:
-    raise Exception("Not implemented yet")
-
-  image = inp
-  # image = tf.cast(inp, tf.float32)
-  if random_flip:
-    log.info("Apply random flipping")
-    image = tf.image.random_flip_left_right(image)
-  # Brightness/saturation/constrast provides small gains .2%~.5% on cifar.
-  # image = tf.image.random_brightness(image, max_delta=63. / 255.)
-  # image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
-  # image = tf.image.random_contrast(image, lower=0.2, upper=1.8)
-  if whiten:
-    log.info("Apply whitening")
-    image = tf.image.per_image_whitening(image)
-  return inp, image
-
-
-def hmdb51_double_stream_preprocess(config, random_crop=True, random_flip=True, whiten=True):
-  img_width = config.width
-  img_height = config.height
-  
-  if config.double_stream == True:
-    inp_img = tf.placeholder(tf.float32, [img_height, img_width, config.num_rgb_channel])
-    inp_op = tf.placeholder(tf.float32, [img_height, img_width, config.num_optflow_channel])
-  else:
-    raise Exception("Not implemented yet")
-
+  inp_img = tf.placeholder(tf.float32, [img_height, img_width, config.img_num_channel])
+  inp_op  = tf.placeholder(tf.float32, [img_height, img_width, config.op_num_channel])
   image = inp_img
   # image = tf.cast(inp, tf.float32)
   if random_flip:
@@ -95,4 +65,4 @@ def hmdb51_double_stream_preprocess(config, random_crop=True, random_flip=True, 
   if whiten:
     log.info("Apply whitening")
     image = tf.image.per_image_whitening(image)
-  return inp_img, image, inp_op 
+  return inp_img, image, inp_op, inp_op

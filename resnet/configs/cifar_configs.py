@@ -12,8 +12,8 @@ class ResNet32Config(object):
     self.batch_size = 15
     self.height = 56
     self.width = 56
-    self.num_rgb_channel = 3
-    self.num_optflow_channel = 10
+    self.img_num_channel =3
+    self.op_num_channel = 10
     self.min_lrn_rate = 1e-6
     self.base_learn_rate = 1e-1
     self.num_residual_units = [3, 3, 3, 3]  # ResNet-32
@@ -52,8 +52,8 @@ class ResNet32Config(object):
 
     # Flags for setting up the rgb or optflow
     self.rgb_only = False
-    self.optflow_only = True
-    self.double_stream = False
+    self.optflow_only = False
+    self.double_stream = True
 
 @RegisterConfig("resnet-110")
 class ResNet110Config(ResNet32Config):
@@ -91,7 +91,7 @@ class ResNet110Config(ResNet32Config):
     self.save_iter = 100
     self.valid_iter = 100
     self.prefetch = True
-    self.data_aug = False
+    self.data_aug = True
     self.whiten = False  # Original TF has whiten.
     self.div255 = True
     self.seed = 0
