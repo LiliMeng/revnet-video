@@ -93,6 +93,7 @@ class ResNetModel(object):
 
     if label is None:
       y = tf.placeholder(tf.int32, [batch_size], "y")
+      print("No labels")
     else:
       y = label
 
@@ -665,13 +666,25 @@ class ResNetModel(object):
       raise Exception("Not implemented yet")
     return sess.run(self.output, feed_dict=feed_data)
 
-  def eval_step(self, sess, inp_img=None, label_img=None, inp_op=None, label_op=None):
-    if inp_img is not None and label_img is not None and inp_op is None and label_op is None:
-      feed_data = {self.input_img: inp_img, self.label: label_img}
-    elif inp_op is not None and label_op is not None and inp_img is None:
-      feed_data = {self.input_op: inp_op, self.label: label_op}
-    elif inp_img is not None and label_img is not None and inp_op is not None and label_op is not None:
-      feed_data = {self.input_op: inp_op, self.inp_img: inp_img, self.label: label_img}
+  def eval_step(self, config, sess, inp_img=None, label_img=None, inp_op=None, label_op=None):
+    if config.rgb_only == True:
+      if inp_img is not None and label_img is not None:
+        feed_data = {self.input_img: inp_img, self.label: label_img}
+      elif inp is not None:
+        feed_data = {self.input_img: inp_img}
+      elif label is not None:
+        feed_data = {self.label_img: label_img}
+      else:
+        feed_data = None
+    elif config.optflow_only == True:
+      if inp_op is not None and label_op is not None:
+        feed_data = {self.input_op: inp_op, self.label: label_op}
+      elif inp is not None:
+        feed_data = {self.input_op: inp_op}
+      elif label is not None:
+        feed_data = {self.label_op: label_op}
+      else:
+        feed_data = None
     else:
       raise Exception("Not implemented yet")
     return sess.run(self.correct)

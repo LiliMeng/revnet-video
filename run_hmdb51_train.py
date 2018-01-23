@@ -285,39 +285,55 @@ def main():
 
   # Configures dataset objects.
   log.info("Building dataset")
-  train_data_img = get_dataset(name="hmdb51-img", split=train_str, config=config)
+  if config.rgb_only == True:
+    train_data_img = get_dataset(name="hmdb51-img", split=train_str, config=config)
 
-  print("train_data_img")
-  print(train_data_img)
+    print("train_data_img")
+    print(train_data_img)
 
-  test_data_img = get_dataset(
-      name="hmdb51-img", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
+    test_data_img = get_dataset(
+        name="hmdb51-img", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
 
-  print("test_data_img")
-  print(test_data_img)
+    print("test_data_img")
+    print(test_data_img)
 
-  train_data_op = get_dataset(name="hmdb51-op", split=train_str, config=config)
+        # Trains a model.
+    acc = train_model(
+        exp_id,
+        config,
+        train_data_img,
+        test_data_img,
+        train_iter_op = None,
+        test_iter_op = None,
+        save_folder=save_folder,
+        logs_folder=logs_folder)
+    log.info("Final test accuracy = {:.3f}".format(acc * 100))
+  elif config.optflow_only == True:
 
-  print("train_data_op")
-  print(train_data_op)
 
-  test_data_op = get_dataset(
-      name="hmdb51-op", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
+    train_data_op = get_dataset(name="hmdb51-op", split=train_str, config=config)
 
-  print("test_data_op")
-  print(test_data_op)
+    print("train_data_op")
+    print(train_data_op)
 
-  # Trains a model.
-  acc = train_model(
-      exp_id,
-      config,
-      train_data_img,
-      test_data_img,
-      train_data_op,
-      test_data_op,
-      save_folder=save_folder,
-      logs_folder=logs_folder)
-  log.info("Final test accuracy = {:.3f}".format(acc * 100))
+    test_data_op = get_dataset(
+        name="hmdb51-op", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
+
+    print("test_data_op")
+    print(test_data_op)
+    acc = train_model(
+        exp_id,
+        config,
+        train_iter_img=None,
+        test_iter_img=None,
+        train_iter_op = train_data_op,
+        test_iter_op = test_data_op,
+        save_folder=save_folder,
+        logs_folder=logs_folder)
+    log.info("Final test accuracy = {:.3f}".format(acc * 100))
+  else:
+    raise Exception("Not implemented yet")
+
 
 
 if __name__ == "__main__":
