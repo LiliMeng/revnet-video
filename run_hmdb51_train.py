@@ -107,14 +107,14 @@ def evaluate(sess, config, model, data_iter_img=None, data_iter_op=None):
   count = 0
   if config.rgb_only == True:
     for batch in data_iter_img:
-      y = model.infer_step(sess, inp_img= batch["img"])
+      y = model.infer_step(config, sess, inp_img= batch["img"], inp_op=None)
       pred_label = np.argmax(y, axis=1)
       num_correct += np.sum(np.equal(pred_label, batch["label"]).astype(float))
       count += pred_label.size
     acc = (num_correct / count)
   elif config.optflow_only == True:
     for batch in data_iter_op:
-      y = model.infer_step(sess, inp_op=batch["img"])
+      y = model.infer_step(config, sess, inp_img=None, inp_op=batch["img"])
       pred_label = np.argmax(y, axis=1)
       num_correct += np.sum(np.equal(pred_label, batch["label"]).astype(float))
       count += pred_label.size
@@ -217,13 +217,15 @@ def train_model(exp_id,
           exp_logger.log_train_ce(niter, ce)
 
         if (niter + 1) % config.valid_iter == 0 or niter == 0:
-          test_iter_img.reset()
-          test_iter_op.reset()
           if config.rgb_only == True:
+            test_iter_img.reset()
             acc = evaluate(sess, config, mvalid, data_iter_img=test_iter_img, data_iter_op=None)
           elif config.optflow_only == True:
+            test_iter_op.reset()
             acc = evaluate(sess, config, mvalid, data_iter_img = None, data_iter_op=test_iter_op)
           elif config.double_stream == True:
+            test_iter_img.reset()
+            test_iter_op.reset()
             acc = evaluate(sess, config, mvalid, data_iter_img = test_iter_img, data_iter_op=test_iter_op)
           else:
             raise Exception("Not implemented yet")
@@ -321,7 +323,7 @@ def main():
     log.info("Final test accuracy = {:.3f}".format(acc * 100))
 
   elif config.double_stream == True:
-    
+
     train_data_img = get_dataset(name="hmdb51-img", split=train_str, config=config)
     test_data_img = get_dataset(
         name="hmdb51-img", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)

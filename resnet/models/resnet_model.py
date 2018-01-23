@@ -655,7 +655,7 @@ class ResNetModel(object):
   def infer_step(self, config, sess, inp_img=None, inp_op=None):
     """Run inference."""
     if config.rgb_only == True:
-      if inp is None:
+      if inp_img is None:
         feed_data = None
       else:
         feed_data = {self.input_img: inp_img}
@@ -667,7 +667,7 @@ class ResNetModel(object):
         feed_data = {self.input_op: inp_op}
       return sess.run(self.output, feed_dict=feed_data)
     elif config.double_stream == True:
-      if inp is None:
+      if inp_op is None:
         feed_data = None
       else:
         feed_data = {self.input_img: inp_img, self.input_op: inp_op}
