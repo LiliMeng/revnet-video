@@ -652,19 +652,29 @@ class ResNetModel(object):
     # assert x.get_shape().ndims == 4
     return tf.reduce_mean(x, [1, 2])
 
-  def infer_step(self, sess, inp_img=None, inp_op=None):
+  def infer_step(self, config, sess, inp_img=None, inp_op=None):
     """Run inference."""
-    if inp_img is None and inp_op is None:
-      feed_data = None
-    elif inp_img is not None and inp_op is None:
-      feed_data = {self.input_img: inp_img}
-    elif inp_img is None and inp_op is not None:
-      feed_data = {self.input_op: inp_op}
-    elif inp_img is not None and inp_op is not None:
-      feed_data = {self.input_img: inp_img, self.input_op: inp_op}
+    if config.rgb_only == True:
+      if inp is None:
+        feed_data = None
+      else:
+        feed_data = {self.input_img: inp_img}
+      return sess.run(self.output, feed_dict=feed_data)
+    elif config.optflow_only == True:
+      if inp is None:
+        feed_data = None
+      else:
+        feed_data = {self.input_op: inp_op}
+      return sess.run(self.output, feed_dict=feed_data)
+    elif config.double_stream == True:
+      if inp is None:
+        feed_data = None
+      else:
+        feed_data = {self.input_img: inp_img, self.input_op: inp_op}
+      return sess.run(self.output, feed_dict=feed_data)
     else:
       raise Exception("Not implemented yet")
-    return sess.run(self.output, feed_dict=feed_data)
+   
 
   def eval_step(self, config, sess, inp_img=None, label_img=None, inp_op=None, label_op=None):
     if config.rgb_only == True:

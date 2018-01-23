@@ -120,8 +120,8 @@ def evaluate(sess, config, model, data_iter_img=None, data_iter_op=None):
       count += pred_label.size
     acc = (num_correct / count)
   # elif config.double_stream == True:
-  #   for batch in data_iter_img:
-  #     y = model.
+  #    for batch in data_iter_img:
+  #      y = model.
   else:
     raise Exception("Not implemented yet")
   return acc
@@ -288,15 +288,8 @@ def main():
   if config.rgb_only == True:
     train_data_img = get_dataset(name="hmdb51-img", split=train_str, config=config)
 
-    print("train_data_img")
-    print(train_data_img)
-
     test_data_img = get_dataset(
         name="hmdb51-img", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
-
-    print("test_data_img")
-    print(test_data_img)
-
         # Trains a model.
     acc = train_model(
         exp_id,
@@ -313,19 +306,35 @@ def main():
 
     train_data_op = get_dataset(name="hmdb51-op", split=train_str, config=config)
 
-    print("train_data_op")
-    print(train_data_op)
-
     test_data_op = get_dataset(
         name="hmdb51-op", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
 
-    print("test_data_op")
-    print(test_data_op)
     acc = train_model(
         exp_id,
         config,
         train_iter_img=None,
         test_iter_img=None,
+        train_iter_op = train_data_op,
+        test_iter_op = test_data_op,
+        save_folder=save_folder,
+        logs_folder=logs_folder)
+    log.info("Final test accuracy = {:.3f}".format(acc * 100))
+
+  elif config.double_stream == True:
+    
+    train_data_img = get_dataset(name="hmdb51-img", split=train_str, config=config)
+    test_data_img = get_dataset(
+        name="hmdb51-img", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
+
+    train_data_op = get_dataset(name="hmdb51-op", split=train_str, config=config)
+    test_data_op = get_dataset(
+        name="hmdb51-op", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
+
+    acc = train_model(
+        exp_id,
+        config,
+        train_iter_img=train_data_img,
+        test_iter_img=test_data_img,
         train_iter_op = train_data_op,
         test_iter_op = test_data_op,
         save_folder=save_folder,
