@@ -36,16 +36,14 @@ class HMDB51_Dataset():
         [self.split_idx[:valid_start], self.split_idx[valid_end:]])
     if data_aug or whiten:
       with tf.device("/cpu:0"):
-        if config.rgb_only == True:
-          self.inp_preproc, self.out_preproc = hmdb51_input.hmdb51_rgb_preprocess(
-              random_crop=data_aug, random_flip=data_aug, whiten=whiten, config=config)
-        elif config.optflow_only == True:
-          self.inp_preproc, self.out_preproc = hmdb51_input.hmdb51_optflow_preprocess(
+        if config.rgb_only == True or config.optflow_only == True:
+          self.inp_preproc, self.out_preproc = hmdb51_input.hmdb51_preprocess(
               random_crop=data_aug, random_flip=data_aug, whiten=whiten, config=config)
         elif config.double_stream == True:
-          raise Exception("double stream Not implemented yet")
+          self.inp_preproc, self.out_preproc, self.inp_preproc_optflow = hmdb51_input.hmdb51_double_stream_preprocess(random_crop=data_aug, random_flip=data_aug,
+              whiten=whiten, config=config)
         else:
-          raise Exception("double stream not implemented yet")
+          raise Exceptioin("Not implemented yet")
 
       self.session = tf.Session()
     self.data_aug = data_aug
@@ -75,12 +73,12 @@ class HMDB51_Dataset():
       }
     else:
       raise Exceptioin("not implemented yet in the get_batch_idx function")
-    if self.data_aug or self.whiten:
-      img = np.zeros(result["img"].shape)
-      for ii in range(len(idx)):
-        img[ii] = self.session.run(
-            self.out_preproc, feed_dict={self.inp_preproc: result["img"][ii]})
-      result["img"] = img
-    if self.div255:
-      result["img"] = result["img"] / 255.0
+    # if self.data_aug or self.whiten:
+    #   img = np.zeros(result["img"].shape)
+    #   for ii in range(len(idx)):
+    #     img[ii] = self.session.run(
+    #         self.out_preproc, feed_dict={self.inp_preproc: result["img"][ii]})
+    #   result["img"] = img
+    # if self.div255:
+    #   result["img"] = result["img"] / 255.0
     return result

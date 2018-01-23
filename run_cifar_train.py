@@ -254,13 +254,6 @@ def main():
   # Configures dataset objects.
   log.info("Building dataset")
   train_data = get_dataset(dataset_name, train_str)
-  trainval_data = get_dataset(
-      dataset_name,
-      train_str,
-      num_batches=100,
-      data_aug=False,
-      cycle=False,
-      prefetch=False)
   test_data = get_dataset(
       dataset_name, test_str, data_aug=False, cycle=False, prefetch=False)
 
@@ -270,7 +263,6 @@ def main():
       config,
       train_data,
       test_data,
-      trainval_data,
       save_folder=save_folder,
       logs_folder=logs_folder)
   log.info("Final test accuracy = {:.3f}".format(acc * 100))

@@ -91,21 +91,39 @@ def _get_models(config):
   return m, mvalid
 
 
-def train_step(sess, model, batch):
+def train_step(sess, config, model, batch_img=None, batch_op=None):
   """Train step."""
-  return model.train_step(sess, batch["img"], batch["label"])
+  if config.rgb_only == True:
+    return model.train_step(config, sess, batch_img["img"], batch_img["label"])
+  elif config.optflow_only == True:
+    return model.train_step(config, sess, batch_op["img"], batch_op["img"])
+  elif config.double_stream == True:
+    return model.train_step(config, sess, batch_img["img"], batch_img["label"], batch_op["img"], batch_op["label"])
 
 
-def evaluate(sess, model, data_iter):
+def evaluate(sess, config, model, data_iter_img=None, data_iter_op=None):
   """Runs evaluation."""
   num_correct = 0.0
   count = 0
-  for batch in data_iter:
-    y = model.infer_step(sess, batch["img"])
-    pred_label = np.argmax(y, axis=1)
-    num_correct += np.sum(np.equal(pred_label, batch["label"]).astype(float))
-    count += pred_label.size
-  acc = (num_correct / count)
+  if config.rgb_only == True:
+    for batch in data_iter_img:
+      y = model.infer_step(sess, inp_img= batch["img"])
+      pred_label = np.argmax(y, axis=1)
+      num_correct += np.sum(np.equal(pred_label, batch["label"]).astype(float))
+      count += pred_label.size
+    acc = (num_correct / count)
+  elif config.optflow_only == True:
+    for batch in data_iter_op:
+      y = model.infer_step(sess, inp_op=batch["img"])
+      pred_label = np.argmax(y, axis=1)
+      num_correct += np.sum(np.equal(pred_label, batch["label"]).astype(float))
+      count += pred_label.size
+    acc = (num_correct / count)
+  # elif config.double_stream == True:
+  #   for batch in data_iter_img:
+  #     y = model.
+  else:
+    raise Exception("Not implemented yet")
   return acc
 
 
@@ -123,8 +141,10 @@ def save(sess, saver, global_step, config, save_folder):
 
 def train_model(exp_id,
                 config,
-                train_iter,
-                test_iter,
+                train_iter_img=None,
+                test_iter_img=None,
+                train_iter_op=None,
+                test_iter_op=None,
                 trainval_iter=None,
                 save_folder=None,
                 logs_folder=None):
@@ -184,18 +204,29 @@ def train_model(exp_id,
 
       for niter in tqdm(range(niter_start, config.max_train_iter), desc=exp_id):
         lr_scheduler.step(niter)
-        ce = train_step(sess, m, train_iter.next())
+        if config.rgb_only == True:
+          ce = train_step(sess, config, m, batch_img = train_iter_img.next(), batch_op = None)
+        elif config.optflow_only == True:
+          ce = train_step(sess, config, m, batch_img = None, batch_op = train_iter_op.next())
+        elif config.double_stream == True:
+          ce = train_step(sess, config, m, batch_img = train_iter_img.next(), batch_op = train_iter_op.next())
+        else:
+          raise Exception("Not implemented yet")
 
         if (niter + 1) % config.disp_iter == 0 or niter == 0:
           exp_logger.log_train_ce(niter, ce)
 
         if (niter + 1) % config.valid_iter == 0 or niter == 0:
-          if trainval_iter is not None:
-            trainval_iter.reset()
-            acc = evaluate(sess, mvalid, trainval_iter)
-            exp_logger.log_train_acc(niter, acc)
-          test_iter.reset()
-          acc = evaluate(sess, mvalid, test_iter)
+          test_iter_img.reset()
+          test_iter_op.reset()
+          if config.rgb_only == True:
+            acc = evaluate(sess, config, mvalid, data_iter_img=test_iter_img, data_iter_op=None)
+          elif config.optflow_only == True:
+            acc = evaluate(sess, config, mvalid, data_iter_img = None, data_iter_op=test_iter_op)
+          elif config.double_stream == True:
+            acc = evaluate(sess, config, mvalid, data_iter_img = test_iter_img, data_iter_op=test_iter_op)
+          else:
+            raise Exception("Not implemented yet")
           exp_logger.log_valid_acc(niter, acc)
 
         if (niter + 1) % config.save_iter == 0 or niter == 0:
@@ -203,7 +234,15 @@ def train_model(exp_id,
           exp_logger.log_learn_rate(niter, m.lr.eval())
 
       test_iter.reset()
-      acc = evaluate(sess, mvalid, test_iter)
+      if config.rgb_only == True:
+        acc = evaluate(sess, config, mvalid, test_iter_img=test_iter_img, test_iter_op=None)
+      elif config.optflow_only == True:
+        acc = evaluate(sess, config, mvalid, test_iter_img = None, test_iter_op=test_iter_op)
+      elif config.double_stream == True:
+        acc = evaluate(sess, config, mvalid, test_iter_img = test_iter_img, test_iter_op=test_iter_op)
+      else:
+        raise Exception("Not implemented yet")
+     
   return acc
 
 
@@ -246,24 +285,36 @@ def main():
 
   # Configures dataset objects.
   log.info("Building dataset")
-  train_data = get_dataset(name=dataset_name, split=train_str, config=config)
-  trainval_data = get_dataset(
-      name=dataset_name,
-      split=train_str,
-      data_aug=False,
-      cycle=False,
-      prefetch=False,
-      config=config)
-  test_data = get_dataset(
-      name=dataset_name, split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
+  train_data_img = get_dataset(name="hmdb51-img", split=train_str, config=config)
+
+  print("train_data_img")
+  print(train_data_img)
+
+  test_data_img = get_dataset(
+      name="hmdb51-img", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
+
+  print("test_data_img")
+  print(test_data_img)
+
+  train_data_op = get_dataset(name="hmdb51-op", split=train_str, config=config)
+
+  print("train_data_op")
+  print(train_data_op)
+
+  test_data_op = get_dataset(
+      name="hmdb51-op", split=test_str, data_aug=False, cycle=False, prefetch=False,config=config)
+
+  print("test_data_op")
+  print(test_data_op)
 
   # Trains a model.
   acc = train_model(
       exp_id,
       config,
-      train_data,
-      test_data,
-      trainval_data,
+      train_data_img,
+      test_data_img,
+      train_data_op,
+      test_data_op,
       save_folder=save_folder,
       logs_folder=logs_folder)
   log.info("Final test accuracy = {:.3f}".format(acc * 100))

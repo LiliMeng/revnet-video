@@ -69,7 +69,8 @@ class RevNetModel(ResNetModel):
     return x1, x2
 
   def _residual(self,
-                x,
+                x1,
+                x2,
                 in_filter,
                 out_filter,
                 stride,
@@ -86,7 +87,7 @@ class RevNetModel(ResNetModel):
     Returns:
       y: [N, H, W, Cout]. Output activation.
     """
-    x1, x2 = self._split(concat, in_filter, x)
+    #x1, x2 = self._split(concat, in_filter, x)
     with tf.variable_scope("f"):
       f_x2 = self._residual_inner(
           x2,

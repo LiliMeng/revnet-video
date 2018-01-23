@@ -47,11 +47,16 @@ def read_hmdb51(data_folder):
   return hmdb51_data
 
 
-def hmdb51_optflow_preprocess(config, random_crop=True, random_flip=True, whiten=True):
+def hmdb51_preprocess(config, random_crop=True, random_flip=True, whiten=True):
   img_width = config.width
   img_height = config.height
   
-  inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_optflow_channel])
+  if config.rgb_only == True:
+    inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_rgb_channel])
+  elif config.optflow_only == True:
+    inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_optflow_channel])
+  else:
+    raise Exception("Not implemented yet")
 
   image = inp
   # image = tf.cast(inp, tf.float32)
@@ -68,13 +73,17 @@ def hmdb51_optflow_preprocess(config, random_crop=True, random_flip=True, whiten
   return inp, image
 
 
-def hmdb51_rgb_preprocess(config, random_crop=True, random_flip=True, whiten=True):
+def hmdb51_double_stream_preprocess(config, random_crop=True, random_flip=True, whiten=True):
   img_width = config.width
   img_height = config.height
   
-  inp = tf.placeholder(tf.float32, [img_height, img_width, config.num_rgb_channel])
+  if config.double_stream == True:
+    inp_img = tf.placeholder(tf.float32, [img_height, img_width, config.num_rgb_channel])
+    inp_op = tf.placeholder(tf.float32, [img_height, img_width, config.num_optflow_channel])
+  else:
+    raise Exception("Not implemented yet")
 
-  image = inp
+  image = inp_img
   # image = tf.cast(inp, tf.float32)
   if random_flip:
     log.info("Apply random flipping")
@@ -86,4 +95,4 @@ def hmdb51_rgb_preprocess(config, random_crop=True, random_flip=True, whiten=Tru
   if whiten:
     log.info("Apply whitening")
     image = tf.image.per_image_whitening(image)
-  return inp, image
+  return inp_img, image, inp_op 

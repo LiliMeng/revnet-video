@@ -50,9 +50,11 @@ class ResNet32Config(object):
     self.num_train_imgs = 3570
     self.num_test_imgs = 1530
 
-    self.rgb_only = False
-    self.optflow_only = True
+    # Flags for setting up the rgb or optflow
+    self.rgb_only = True
+    self.optflow_only = False
     self.double_stream = False
+
 @RegisterConfig("resnet-110")
 class ResNet110Config(ResNet32Config):
 
@@ -89,7 +91,7 @@ class ResNet110Config(ResNet32Config):
     self.save_iter = 100
     self.valid_iter = 100
     self.prefetch = True
-    self.data_aug = True
+    self.data_aug = False
     self.whiten = False  # Original TF has whiten.
     self.div255 = True
     self.seed = 0
