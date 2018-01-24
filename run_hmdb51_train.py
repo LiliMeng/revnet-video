@@ -96,7 +96,7 @@ def train_step(sess, config, model, batch):
   if config.rgb_only == True:
     return model.train_step_img(sess, batch["img_data"], batch["img_label"])
   elif config.optflow_only == True:
-    return model.train_step_op(sess, batch["op_data"], batch_op["label"])
+    return model.train_step_op(sess, batch["op_data"], batch_op["op_label"])
   elif config.double_stream == True:
     return model.train_step_double_stream(sess, batch["img_data"], batch["img_label"], batch["op_data"], batch["op_label"])
 
