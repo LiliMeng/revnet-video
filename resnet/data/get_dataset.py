@@ -58,8 +58,8 @@ def get_dataset(name,
         queue_size=300,
         num_batches=num_batches)
   elif name == "hmdb51-op":
-    dp = HMDB51_Dataset(
-      config=config, split=split, folder=path_op, data_aug=data_aug, whiten=False, div255=False)
+    dp = HMDB51_img_op_Dataset(
+      config=config, split=split, img_folder=path_img, op_folder=path_op, data_aug=data_aug, whiten=False, div255=False)
     return get_iter(
         dp,
         batch_size=config.batch_size,
@@ -71,8 +71,8 @@ def get_dataset(name,
         queue_size=300,
         num_batches=num_batches)
   elif name == "hmdb51-img":
-    dp = HMDB51_Dataset(
-      config=config, split=split, folder=path_img, data_aug=data_aug, whiten=False, div255=False)
+    dp = HMDB51_img_op_Dataset(
+      config=config, split=split, img_folder=path_img, op_folder=path_op, data_aug=data_aug, whiten=False, div255=False)
     return get_iter(
         dp,
         batch_size=config.batch_size,

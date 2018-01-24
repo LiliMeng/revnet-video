@@ -91,8 +91,10 @@ class ResNetModel(object):
     else:
       y = label
 
-    if config.rgb_only == True or config.optflow_only == True:
-      logits = self.build_inference_network(x)
+    if config.rgb_only == True:
+      logits = self.build_inference_network(x_img)
+    elif config.optflow_only == True:
+      logits = self.build_inference_network(x_op)
     elif config.double_stream == True:
       logits = self.build_double_stream_network(x_img, x_op)
     else:
@@ -256,52 +258,31 @@ class ResNetModel(object):
 
     h = self._global_avg_pool(h)
 
+    print(h)
+    # last_conv = h
+    raise Exception("print h")
+        
+    # # Bottom up attention
+    # with tf.variable_scope('BottomUpAttention'):
+    #     W_atten = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
+    #     attention_logits = tf.nn.conv2d(last_conv, W_atten, strides=[1,1,1,1], padding='SAME')
+
+    # # Top down attention
+    # with tf.variable_scope('TopDownAttention'):
+    #     W_td = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
+    #     logits = tf.nn.conv2d(last_conv, W_td, strides=[1,1,1,1], padding='SAME')
+
+    
+    # Y = tf.reduce_mean(attention_logits*logits, [2, 3], keep_dims=True)
+   
+    # logits = tf.squeeze(Y, [2, 3])
+
     # Classification layer.
-    with tf.variable_scope("logit"):
-      logits = self._fully_connected(h, config.num_classes)
+    #with tf.variable_scope("logit"):
+     # logits = self._fully_connected(h, config.num_classes)
 
     return logits
 
-
-  def _residual_double_stream(self,
-                x,
-                in_filter,
-                out_filter,
-                stride,
-                no_activation=False,
-                concat=False,
-                add_bn_ops=True):
-    """Residual unit with 2 sub layers.
-    Args:
-      x: [N, H, W, Ci]. Input activation.
-      in_filter: Int. Input number of channels.
-      out_filter: Int. Output number of channels.
-      stride: Int. Size of the strided convolution.
-      no_activation: Bool. Whether to run through BN+ReLU first.
-    Returns:
-      y: [N, H, W, Cout]. Output activation.
-    """
-    x1, x2 = self._split(concat, in_filter, x)
-    with tf.variable_scope("f"):
-      f_x2 = self._residual_inner(
-          x2,
-          in_filter // 2,
-          out_filter // 2,
-          stride,
-          no_activation=no_activation,
-          add_bn_ops=add_bn_ops)
-    x1_ = self._possible_downsample(x1, in_filter // 2, out_filter // 2, stride)
-    x2_ = self._possible_downsample(x2, in_filter // 2, out_filter // 2, stride)
-    y1 = f_x2 + x1_
-    with tf.variable_scope("g"):
-      f_y1 = self._residual_inner(
-          y1,
-          out_filter // 2,
-          out_filter // 2,
-          self._stride_arr(1),
-          add_bn_ops=add_bn_ops)
-    y2 = f_y1 + x2_
-    return self._combine(concat, y1, y2)
 
   def build_inference_network(self, x):
     config = self.config
@@ -312,8 +293,15 @@ class ResNetModel(object):
     filters = [ff for ff in config.filters]  # Copy filter config.
     init_filter = config.init_filter
 
+    if config.rgb_only == True:
+      num_channel = config.img_num_channel
+    elif config.optflow_only == True:
+      num_channel = config.op_num_channel
+    else:
+      raise Exception("Not implemented yet")
+
     with tf.variable_scope("init"):
-      h = self._conv("init_conv", x, init_filter, self.config.num_channel,
+      h = self._conv("init_conv", x, init_filter, num_channel,
                      filters[0], self._stride_arr(config.init_stride))
       h = self._batch_norm("init_bn", h)
       h = self._relu("init_relu", h)
@@ -384,13 +372,72 @@ class ResNetModel(object):
       h = self._batch_norm("final_bn", h)
       h = self._relu("final_relu", h)
 
-    h = self._global_avg_pool(h)
 
-    # Classification layer.
-    with tf.variable_scope("logit"):
-      logits = self._fully_connected(h, config.num_classes)
+    if config.attentional_pooling == False:
+      h = self._global_avg_pool(h)
 
+      # Classification layer.
+      with tf.variable_scope("logit"):
+        logits = self._fully_connected(h, config.num_classes)
+    else:
+      last_conv = h
+        # Bottom up attention
+      with tf.variable_scope('BottomUpAttention'):
+          W_atten = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
+          attention_logits = tf.nn.conv2d(last_conv, W_atten, strides=[1,1,1,1], padding='SAME')
+
+      # Top down attention
+      with tf.variable_scope('TopDownAttention'):
+          W_td = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
+          logits = tf.nn.conv2d(last_conv, W_td, strides=[1,1,1,1], padding='SAME')
+      
+      Y = tf.reduce_mean(attention_logits*logits, [2, 3], keep_dims=True)
+     
+      logits = tf.squeeze(Y, [2, 3])
+
+   
     return logits
+
+
+  def _residual_double_stream(self,
+                x,
+                in_filter,
+                out_filter,
+                stride,
+                no_activation=False,
+                concat=False,
+                add_bn_ops=True):
+    """Residual unit with 2 sub layers.
+    Args:
+      x: [N, H, W, Ci]. Input activation.
+      in_filter: Int. Input number of channels.
+      out_filter: Int. Output number of channels.
+      stride: Int. Size of the strided convolution.
+      no_activation: Bool. Whether to run through BN+ReLU first.
+    Returns:
+      y: [N, H, W, Cout]. Output activation.
+    """
+    x1, x2 = self._split(concat, in_filter, x)
+    with tf.variable_scope("f"):
+      f_x2 = self._residual_inner(
+          x2,
+          in_filter // 2,
+          out_filter // 2,
+          stride,
+          no_activation=no_activation,
+          add_bn_ops=add_bn_ops)
+    x1_ = self._possible_downsample(x1, in_filter // 2, out_filter // 2, stride)
+    x2_ = self._possible_downsample(x2, in_filter // 2, out_filter // 2, stride)
+    y1 = f_x2 + x1_
+    with tf.variable_scope("g"):
+      f_y1 = self._residual_inner(
+          y1,
+          out_filter // 2,
+          out_filter // 2,
+          self._stride_arr(1),
+          add_bn_ops=add_bn_ops)
+    y2 = f_y1 + x2_
+    return self._combine(concat, y1, y2)
 
   def _combine(self, concat, *argv):
     if concat:
@@ -706,6 +753,20 @@ class ResNetModel(object):
     results = sess.run([self.cross_ent, self.train_op] + self.bn_update_ops,
                        feed_dict=feed_data)
     return results[0]
+
+
+  def weight_variable_custom(self, shape, name):
+    """weight_variable generates a weight variable of a given shape."""
+
+    # Use Xavier Initialization if the weight is a convolutional kernel
+    if tf.rank(shape) == 4:
+        n = shape[0] * shape[1] * shape[3]
+        sd = np.sqrt(2.0 / n)
+    else:
+        sd = 0.1
+    initial = tf.truncated_normal(shape, stddev=sd)
+    return tf.get_variable(name, dtype=tf.float32, initializer=initial)
+
 
   @property
   def cost(self):

@@ -36,7 +36,7 @@ class HMDB51_Dataset():
         [self.split_idx[:valid_start], self.split_idx[valid_end:]])
     if data_aug or whiten:
       with tf.device("/cpu:0"):
-        self.inp_preproc, self.out_preproc = hmdb51_input.hmdb51_tf_preprocess(
+        self.inp_preproc_img, self.out_preproc_img, self.inp_preproc_op, self.inp_preproc_op = hmdb51_input.hmdb51_tf_preprocess(
             random_crop=data_aug, random_flip=data_aug, whiten=whiten, config=config)
       self.session = tf.Session()
     self.data_aug = data_aug
@@ -70,7 +70,7 @@ class HMDB51_Dataset():
       img = np.zeros(result["img"].shape)
       for ii in range(len(idx)):
         img[ii] = self.session.run(
-            self.out_preproc, feed_dict={self.inp_preproc: result["img"][ii]})
+            self.out_preproc_img, feed_dict={self.inp_preproc_img: result["img"][ii]})
       result["img"] = img
     if self.div255:
       result["img"] = result["img"] / 255.0
