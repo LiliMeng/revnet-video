@@ -96,7 +96,7 @@ def train_step(sess, config, model, batch):
   if config.rgb_only == True:
     return model.train_step_img(sess, batch["img_data"], batch["img_label"])
   elif config.optflow_only == True:
-    return model.train_step_op(sess, batch["op_data"], batch_op["op_label"])
+    return model.train_step_op(sess, batch["op_data"], batch["op_label"])
   elif config.double_stream == True:
     return model.train_step_double_stream(sess, batch["img_data"], batch["img_label"], batch["op_data"], batch["op_label"])
 
@@ -220,8 +220,21 @@ def train_model(exp_id,
 
 
 def main():
-  # Loads parammeters.
+   # Loads parammeters.
   config = _get_config()
+
+  if FLAGS.dataset == "hmdb51-img":
+    config.rgb_only = True 
+    print('\033[91m'+"Only RGB images are used" + '\033[0m')
+  elif FLAGS.dataset == "hmdb51-op":
+    config.optflow_only =True
+    print('\033[91m'+"Only optical flow are used" + '\033[0m')
+  elif FLAGS.dataset == "hmdb51-img-op":
+    config.double_stream =True
+    print('\033[91m'+"Both RGB and optical flow are used" + '\033[0m')
+  else:
+    raise ValueError("Unknown dataset name {}".format(FLAGS.dataset))
+
   config.num_classes = 51
 
   if FLAGS.validation:
