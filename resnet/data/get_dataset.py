@@ -5,7 +5,6 @@ from resnet.data.cifar10 import CIFAR10Dataset
 from resnet.data.cifar100 import CIFAR100Dataset
 from resnet.utils.batch_iter import BatchIterator
 from resnet.utils.concurrent_batch_iter import ConcurrentBatchIterator
-from resnet.data.hmdb51 import HMDB51_Dataset
 from resnet.data.hmdb51_img_op import HMDB51_img_op_Dataset
 
 

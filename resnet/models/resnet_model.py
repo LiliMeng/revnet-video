@@ -277,13 +277,10 @@ class ResNetModel(object):
       Y = tf.reduce_mean(attention_logits*logits, [1, 2], keep_dims=True)
      
       logits = tf.squeeze(Y, [1, 2])
-
-      print(attention_logits)
-      print(logits)
    
     return logits
 
-    return logits
+
 
 
   def build_inference_network(self, x):
