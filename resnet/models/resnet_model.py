@@ -256,30 +256,32 @@ class ResNetModel(object):
       h = self._batch_norm("final_bn", h)
       h = self._relu("final_relu", h)
 
-    h = self._global_avg_pool(h)
+    if config.attentional_pooling == False:
 
-    print(h)
-    # last_conv = h
-    raise Exception("print h")
-        
-    # # Bottom up attention
-    # with tf.variable_scope('BottomUpAttention'):
-    #     W_atten = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
-    #     attention_logits = tf.nn.conv2d(last_conv, W_atten, strides=[1,1,1,1], padding='SAME')
+      h = self._global_avg_pool(h)
+      # Classification layer.
+      with tf.variable_scope("logit"):
+        logits = self._fully_connected(h, config.num_classes)
+    else:
+      last_conv = h
+        # Bottom up attention
+      with tf.variable_scope('BottomUpAttention'):
+          W_atten = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
+          attention_logits = tf.nn.conv2d(last_conv, W_atten, strides=[1,1,1,1], padding='SAME')
 
-    # # Top down attention
-    # with tf.variable_scope('TopDownAttention'):
-    #     W_td = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
-    #     logits = tf.nn.conv2d(last_conv, W_td, strides=[1,1,1,1], padding='SAME')
+      # Top down attention
+      with tf.variable_scope('TopDownAttention'):
+          W_td = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
+          logits = tf.nn.conv2d(last_conv, W_td, strides=[1,1,1,1], padding='SAME')
+      
+      Y = tf.reduce_mean(attention_logits*logits, [1, 2], keep_dims=True)
+     
+      logits = tf.squeeze(Y, [1, 2])
 
-    
-    # Y = tf.reduce_mean(attention_logits*logits, [2, 3], keep_dims=True)
+      print(attention_logits)
+      print(logits)
    
-    # logits = tf.squeeze(Y, [2, 3])
-
-    # Classification layer.
-    #with tf.variable_scope("logit"):
-     # logits = self._fully_connected(h, config.num_classes)
+    return logits
 
     return logits
 
@@ -374,8 +376,8 @@ class ResNetModel(object):
 
 
     if config.attentional_pooling == False:
-      h = self._global_avg_pool(h)
 
+      h = self._global_avg_pool(h)
       # Classification layer.
       with tf.variable_scope("logit"):
         logits = self._fully_connected(h, config.num_classes)
@@ -391,10 +393,12 @@ class ResNetModel(object):
           W_td = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
           logits = tf.nn.conv2d(last_conv, W_td, strides=[1,1,1,1], padding='SAME')
       
-      Y = tf.reduce_mean(attention_logits*logits, [2, 3], keep_dims=True)
+      Y = tf.reduce_mean(attention_logits*logits, [1, 2], keep_dims=True)
      
-      logits = tf.squeeze(Y, [2, 3])
+      logits = tf.squeeze(Y, [1, 2])
 
+      print(attention_logits)
+      print(logits)
    
     return logits
 

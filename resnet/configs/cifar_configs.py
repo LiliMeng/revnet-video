@@ -55,7 +55,7 @@ class ResNet32Config(object):
     self.optflow_only = False
     self.double_stream = False
 
-    self.attentional_pooling = False
+    self.attentional_pooling = True
 
 @RegisterConfig("resnet-110")
 class ResNet110Config(ResNet32Config):
