@@ -14,8 +14,8 @@ import os
 import random
 import cv2
 
-img_list_file="../../data_preprocess_tools/hmdb51_data_list/img_list/test.list"
-save_path = "/home/lili/Video/single_stream_revnet_video/revnet-video/resnet/dataset/test"
+img_list_file="../../data_preprocess_tools/hmdb51_data_list/img_list/train.list"
+save_path = "/home/lili/Video/single_stream_revnet_video/revnet-video/resnet/dataset/train/"
 
 IMG_SIZE = 56
 #dataset = "UCF-101"
@@ -73,7 +73,8 @@ def read_img(img_list_file):
   		all_imgs_rgb = np.transpose(all_imgs_rgb, [0, 2, 3, 1])
   	
 
-
+  	print(all_imgs_rgb.shape)
+  	print(labels.shape)
 	return all_imgs_rgb, labels 
 		
 def save_numpy(img_list_file,  save_path):
