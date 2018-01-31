@@ -73,11 +73,16 @@ class HMDB51_img_op_Dataset():
     else:
       raise Exceptioin("not implemented yet in the get_batch_idx function")
     if self.data_aug or self.whiten:
-      img = np.zeros(result["img_data"].shape)
+      img_inp = np.zeros(result["img_data"].shape)
+      img_op = np.zeros(result["op_data"].shape)
       for ii in range(len(idx)):
-        img[ii] = self.session.run(
+        img_inp[ii] = self.session.run(
             self.out_preproc_img, feed_dict={self.inp_preproc_img: result["img_data"][ii]})
-      result["img_data"] = img
+        img_op[ii] = self.session.run(
+            self.out_preproc_op, feed_dict={self.inp_preproc_op: result["op_data"][ii]})
+      result["img_data"] = img_inp
+      result["op_data"] = img_op
     if self.div255:
       result["img_data"] = result["img_data"] / 255.0
+      result["op_data"] = result["op_data"] /255.0
     return result
