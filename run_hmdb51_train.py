@@ -211,6 +211,8 @@ def train_model(exp_id,
 
       merged = tf.summary.merge_all()
 
+      best_test_acc =0
+
       for niter in tqdm(range(niter_start, config.max_train_iter), desc=exp_id):
         lr_scheduler.step(niter)
         ce = train_step(sess, config, m, train_iter.next())
@@ -226,19 +228,24 @@ def train_model(exp_id,
         if (niter + 1) % config.valid_iter == 0 or niter == 0:
           if trainval_iter is not None:
             trainval_iter.reset()
-            acc, summary = evaluate(sess, merged, config, mvalid, trainval_iter)
-            exp_logger.log_train_acc(niter, acc)
+            train_acc, summary = evaluate(sess, merged, config, mvalid, trainval_iter)
+            exp_logger.log_train_acc(niter, train_acc)
           
             train_summ = tf.Summary()
-            train_summ.value.add(tag='train_accuracy', simple_value=acc)
+            train_summ.value.add(tag='train_accuracy', simple_value=train_acc)
             summary_writer.add_summary(train_summ, niter)
 
           test_iter.reset()
-          acc, summary = evaluate(sess, merged, config, mvalid, test_iter)
-          exp_logger.log_valid_acc(niter, acc)
+          test_acc, summary = evaluate(sess, merged, config, mvalid, test_iter)
+          exp_logger.log_valid_acc(niter, test_acc)
+
+          if test_acc > best_test_acc:
+            best_test_acc = test_acc 
+            print('\033[91m' + "Total number of parameters: " +
+              str(best_test_acc) + '\033[0m')     
 
           test_summ = tf.Summary()
-          test_summ.value.add(tag='test_accuracy', simple_value=acc)
+          test_summ.value.add(tag='test_accuracy', simple_value=test_acc)
           summary_writer.add_summary(test_summ, niter)
           summary_writer.add_summary(summary, niter)
 
