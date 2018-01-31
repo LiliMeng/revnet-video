@@ -108,6 +108,16 @@ class ResNet164Config(ResNet32Config):
     self.num_residual_units = [18, 18, 18]  # ResNet-164
     self.use_bottleneck = True
 
+@RegisterConfig("revnet-32")
+class RevNet32Config(ResNet32Config):
+
+  def __init__(self):
+    super(RevNet32Config, self).__init__()
+    self.model_class = "revnet"
+    self.manual_gradients = True
+    self.filters = [16, 16, 32, 64, 112]
+    self.num_residual_units = [3, 3, 3, 3]
+
 
 @RegisterConfig("revnet-38")
 class RevNet38Config(ResNet32Config):
