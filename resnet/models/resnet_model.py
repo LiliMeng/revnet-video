@@ -242,8 +242,6 @@ class ResNetModel(object):
         ii = 0
       else:
         ii += 1
-
-    h = tf.concat([h1, h2], axis=3)
    
     # Save hidden state.
     self._saved_hidden.append(h)
