@@ -13,7 +13,7 @@ class ResNet32Config(object):
     self.height = 56
     self.width = 56
     self.img_num_channel =3
-    self.op_num_channel = 10
+    self.op_num_channel = 20
     self.min_lrn_rate = 1e-6
     self.base_learn_rate = 1e-1
     self.num_residual_units = [3, 3, 3, 3]  # ResNet-32

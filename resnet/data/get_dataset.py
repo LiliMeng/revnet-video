@@ -8,8 +8,8 @@ from resnet.utils.concurrent_batch_iter import ConcurrentBatchIterator
 from resnet.data.hmdb51_img_op import HMDB51_img_op_Dataset
 
 
-path_op = "./dataset/op_txtfiles"
-path_img = "./dataset/img_txtfiles"
+path_op = "/home/lili/Video/single_stream_revnet_video/revnet-video/resnet/dataset/op_txtfiles"
+path_img = "/home/lili/Video/single_stream_revnet_video/revnet-video/resnet/dataset/img_txtfiles"
 
 
 def get_dataset(name,

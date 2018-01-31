@@ -171,6 +171,7 @@ class ResNetModel(object):
     return zip(grads, var_list)
 
   def build_double_stream_network(self, x_img, x_op):
+  
     config = self.config 
     is_training = self.is_training
     num_stages = len(self.config.num_residual_units)
@@ -191,15 +192,9 @@ class ResNetModel(object):
       h2 = self._batch_norm("init_bn", h2)
       h2 = self._relu("init_relu", h2)
 
-    h = tf.concat([h1,h2],axis=3)
-
-    if config.rgb_only == True or config.optflow_only == True:
-      res_func = self._residual
-    elif config.double_stream == True:
-      res_func = self._residual_double_stream
-    else:
-      raise Exception("Not implemented yet")
-
+    h = tf.concat([h1, h2], axis=3)
+    res_func = self._residual
+   
     # New version, single for-loop. Easier for checkpoint.
     nlayers = sum(config.num_residual_units)
     ss = 0
@@ -242,44 +237,26 @@ class ResNetModel(object):
         ii = 0
       else:
         ii += 1
+
    
     # Save hidden state.
     self._saved_hidden.append(h)
 
     # Make a single tensor.
     if type(h) == tuple:
-      h = concat(h, axis=3)
-
+      h = tf.concat(h, axis=3)
+     
     with tf.variable_scope("unit_last"):
       h = self._batch_norm("final_bn", h)
       h = self._relu("final_relu", h)
 
-    if config.attentional_pooling == False:
+    h = self._global_avg_pool(h)
 
-      h = self._global_avg_pool(h)
-      # Classification layer.
-      with tf.variable_scope("logit"):
-        logits = self._fully_connected(h, config.num_classes)
-    else:
-      last_conv = h
-        # Bottom up attention
-      with tf.variable_scope('BottomUpAttention'):
-          W_atten = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
-          attention_logits = tf.nn.conv2d(last_conv, W_atten, strides=[1,1,1,1], padding='SAME')
+    # Classification layer.
+    with tf.variable_scope("logit"):
+      logits = self._fully_connected(h, config.num_classes)
 
-      # Top down attention
-      with tf.variable_scope('TopDownAttention'):
-          W_td = self.weight_variable_custom([1, 1, config.filters[-1], config.num_classes], 'weight_K')
-          logits = tf.nn.conv2d(last_conv, W_td, strides=[1,1,1,1], padding='SAME')
-      
-      Y = tf.reduce_mean(attention_logits*logits, [1, 2], keep_dims=True)
-     
-      logits = tf.squeeze(Y, [1, 2])
-   
     return logits
-
-
-
 
   def build_inference_network(self, x):
     config = self.config
@@ -392,8 +369,6 @@ class ResNetModel(object):
      
       logits = tf.squeeze(Y, [1, 2])
 
-      print(attention_logits)
-      print(logits)
    
     return logits
 
@@ -674,23 +649,23 @@ class ResNetModel(object):
     # assert x.get_shape().ndims == 4
     return tf.reduce_mean(x, [1, 2])
 
-  def infer_step_img(self, sess, inp=None):
+  def infer_step_img(self, sess, merged, inp=None):
     """Run inference."""
     if inp is None:
       feed_data = None
     else:
       feed_data = {self.input_img: inp}
-    return sess.run(self.output, feed_dict=feed_data)
+    return sess.run([self.output, merged], feed_dict=feed_data)
 
-  def infer_step_op(self, sess, inp=None):
+  def infer_step_op(self, sess, merged, inp=None):
     """Run inference."""
     if inp is None:
       feed_data = None
     else:
       feed_data = {self.input_op: inp}
-    return sess.run(self.output, feed_dict=feed_data)
+    return sess.run([self.output, merged], feed_dict=feed_data)
 
-  def infer_step_double_stream(self, sess, inp_img=None, inp_op=None):
+  def infer_step_double_stream(self, sess, merged, inp_img=None, inp_op=None):
     """Run inference for the double stream"""
     if inp_img is None and inp_op is None:
       feed_data = None
@@ -698,7 +673,8 @@ class ResNetModel(object):
       feed_data = {self.input_img: inp_img, self.input_op: inp_op}
     else:
       raise Exception("Not implemented yet")
-    return sess.run(self.output, feed_dict=feed_data)
+    return sess.run([self.output, merged], feed_dict=feed_data)
+
 
   def eval_step(self, sess, inp=None, label=None):
     if inp is not None and label is not None:

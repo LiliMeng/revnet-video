@@ -26,7 +26,7 @@ Flags:
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-
+import time
 import json
 import numpy as np
 import os
@@ -44,7 +44,7 @@ log = logger.get()
 
 flags = tf.flags
 flags.DEFINE_string("config", None, "Manually defined config file.")
-flags.DEFINE_string("dataset", "cifar-10", "Dataset name.")
+flags.DEFINE_string("dataset", "hmdb51-img", "Dataset name.")
 flags.DEFINE_string("id", None, "Experiment ID.")
 flags.DEFINE_string("results", "./results/cifar", "Saving folder.")
 flags.DEFINE_string("logs", "./logs/public", "Logging folder.")
@@ -101,24 +101,24 @@ def train_step(sess, config, model, batch):
     return model.train_step_double_stream(sess, batch["img_data"], batch["img_label"], batch["op_data"], batch["op_label"])
 
 
-def evaluate(sess, config, model, data_iter):
+def evaluate(sess, merged, config, model, data_iter):
   """Runs evaluation."""
   num_correct = 0.0
   count = 0
   for batch in data_iter:
     if config.rgb_only == True: 
-      y = model.infer_step_img(sess, batch["img_data"])
+      y, summary = model.infer_step_img(sess, merged, batch["img_data"])
     elif config.optflow_only == True:
-      y = model.infer_step_op(sess, batch["op_data"])
+      y, summary = model.infer_step_op(sess, merged, batch["op_data"])
     elif config.double_stream == True:
-      y = model.infer_step_double_stream(sess, batch["img_data"], batch["op_data"])
+      y, summary = model.infer_step_double_stream(sess, merged, batch["img_data"], batch["op_data"])
     else:
       raise Exception("Not implemented yet")
     pred_label = np.argmax(y, axis=1)
     num_correct += np.sum(np.equal(pred_label, batch["img_label"]).astype(float))
     count += pred_label.size
   acc = (num_correct / count)
-  return acc
+  return acc, summary
 
 
 def save(sess, saver, global_step, config, save_folder):
@@ -156,6 +156,16 @@ def train_model(exp_id,
   log.info("Config: {}".format(config.__dict__))
   exp_logger = ExperimentLogger(logs_folder)
 
+
+  tf_log_dir = os.path.join("./tf_log", FLAGS.model + FLAGS.dataset +time.strftime("_%b_%d_%H_%M", time.localtime()))
+
+  print("learning rate aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+  print(config.base_learn_rate)
+
+  if tf.gfile.Exists(tf_log_dir):
+      tf.gfile.DeleteRecursively(tf_log_dir)
+  tf.gfile.MakeDirs(tf_log_dir)
+ 
   # Initializes variables.
   with tf.Graph().as_default():
     np.random.seed(0)
@@ -182,6 +192,9 @@ def train_model(exp_id,
       ]).sum()
       log.info("Number of parameters {}".format(num_params))
 
+      summary_writer = tf.summary.FileWriter(
+                 tf_log_dir, graph=tf.get_default_graph())
+
       # Set up learning rate schedule.
       if config.lr_scheduler_type == "fixed":
         lr_scheduler = FixedLearnRateScheduler(
@@ -194,9 +207,18 @@ def train_model(exp_id,
         raise Exception("Unknown learning rate scheduler {}".format(
             config.lr_scheduler))
 
+      tf.summary.scalar('learning_rate', lr_scheduler.lr)
+
+      merged = tf.summary.merge_all()
+
       for niter in tqdm(range(niter_start, config.max_train_iter), desc=exp_id):
         lr_scheduler.step(niter)
         ce = train_step(sess, config, m, train_iter.next())
+
+        train_summ = tf.Summary()
+        train_summ.value.add(tag='train_loss', simple_value=ce)
+        summary_writer.add_summary(train_summ, niter)
+      
 
         if (niter + 1) % config.disp_iter == 0 or niter == 0:
           exp_logger.log_train_ce(niter, ce)
@@ -204,18 +226,28 @@ def train_model(exp_id,
         if (niter + 1) % config.valid_iter == 0 or niter == 0:
           if trainval_iter is not None:
             trainval_iter.reset()
-            acc = evaluate(sess, config, mvalid, trainval_iter)
+            acc, summary = evaluate(sess, merged, config, mvalid, trainval_iter)
             exp_logger.log_train_acc(niter, acc)
+          
+            train_summ = tf.Summary()
+            train_summ.value.add(tag='train_accuracy', simple_value=acc)
+            summary_writer.add_summary(train_summ, niter)
+
           test_iter.reset()
-          acc = evaluate(sess, config, mvalid, test_iter)
+          acc, summary = evaluate(sess, merged, config, mvalid, test_iter)
           exp_logger.log_valid_acc(niter, acc)
+
+          test_summ = tf.Summary()
+          test_summ.value.add(tag='test_accuracy', simple_value=acc)
+          summary_writer.add_summary(test_summ, niter)
+          summary_writer.add_summary(summary, niter)
 
         if (niter + 1) % config.save_iter == 0 or niter == 0:
           save(sess, saver, m.global_step, config, save_folder)
           exp_logger.log_learn_rate(niter, m.lr.eval())
 
       test_iter.reset()
-      acc = evaluate(sess, config, mvalid, test_iter)
+      acc = evaluate(sess, merged, config, mvalid, test_iter)
   return acc
 
 
