@@ -33,7 +33,7 @@ def read_img(img_list_file):
 	
 	
 	for i in range(len(lines_img)):
-	
+	#for i in range(10):
 		
 		label_img = int(lines_img[i].split()[1])
 
@@ -59,8 +59,6 @@ def read_img(img_list_file):
 		img_rgb = cv2.resize(img_rgb, (IMG_SIZE, IMG_SIZE)) 
 		img_rgb = np.array(img_rgb)
 			
-		
-		img_rgb=np.array(img_rgb)	
 	
 		all_imgs_rgb.append(img_rgb)
 
@@ -68,7 +66,7 @@ def read_img(img_list_file):
 	all_imgs_rgb = np.array(all_imgs_rgb)
 	labels = np.array(labels)
 	
-	if dataset == "HMDB-51":
+	if dataset == "UCF-101":
 		# change format from [B, C, H, W] to [B, H, W, C] for feeding to Tensorflow
   		all_imgs_rgb = np.transpose(all_imgs_rgb, [0, 2, 3, 1])
   	
