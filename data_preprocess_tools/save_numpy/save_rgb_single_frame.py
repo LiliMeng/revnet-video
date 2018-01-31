@@ -64,7 +64,7 @@ def read_img(img_list_file):
 	
 		all_imgs_rgb.append(img_rgb)
 
-		print(np.array(all_imgs_rgb).shape)
+
 	all_imgs_rgb = np.array(all_imgs_rgb)
 	labels = np.array(labels)
 	
