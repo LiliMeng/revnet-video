@@ -14,8 +14,8 @@ import os
 import random
 import cv2
 
-img_list_file="../../data_preprocess_tools/hmdb51_data_list/img_list/train.list"
-save_path = "../resnet/dataset/train"
+img_list_file="../../data_preprocess_tools/hmdb51_data_list/img_list/test.list"
+save_path = "../resnet/dataset/test"
 
 IMG_SIZE = 56
 #dataset = "UCF-101"
@@ -31,8 +31,8 @@ def read_img(img_list_file):
 	all_imgs_rgb = []
 	labels = []
 	
-	print(len(lines_img))
-	for i in range(len(lines_img)-1):
+	
+	for i in range(len(lines_img)):
 	
 		
 		label_img = int(lines_img[i].split()[1])
@@ -74,7 +74,6 @@ def read_img(img_list_file):
   	
 
 
-  	print(all_imgs_rgb.shape)
 	return all_imgs_rgb, labels 
 		
 def save_numpy(img_list_file,  save_path):
