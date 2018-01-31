@@ -241,8 +241,8 @@ def train_model(exp_id,
 
           if test_acc > best_test_acc:
             best_test_acc = test_acc 
-            print('\033[91m' + "Total number of parameters: " +
-              str(best_test_acc) + '\033[0m')     
+            print('\033[91m' + "best test accuracy " +
+              str(best_test_acc*100) + '\033[0m')     
 
           test_summ = tf.Summary()
           test_summ.value.add(tag='test_accuracy', simple_value=test_acc)
