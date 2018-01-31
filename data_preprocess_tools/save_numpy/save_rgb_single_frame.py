@@ -15,7 +15,7 @@ import random
 import cv2
 
 img_list_file="../../data_preprocess_tools/hmdb51_data_list/img_list/test.list"
-save_path = "../resnet/dataset/test"
+save_path = "/home/lili/Video/single_stream_revnet_video/revnet-video/resnet/dataset/test"
 
 IMG_SIZE = 56
 #dataset = "UCF-101"
