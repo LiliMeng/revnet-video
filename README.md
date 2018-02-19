@@ -1,64 +1,63 @@
-# revnet-public
-Code for paper
-*The Reversible Residual Network: Backpropagation without Storing Activations.*
-[[arxiv](https://arxiv.org/abs/1707.04585)]
+###########################################################
+Moments in Time                                                    
+###########################################################
 
-## Installation
-Customize paths first in `setup.sh` (data folder, model save folder, etc.).
-```bash
-git clone git://github.com/renmengye/revnet-public.git
-cd revnet-public
-# Change paths in setup.sh
-# It also provides options to download CIFAR and ImageNet data. (ImageNet
-# experiments require dataset in tfrecord format).
-./setup.sh
-```
+The Moments in Time Dataset
+http://moments.csail.mit.edu/
 
-## CIFAR-10/100
-```bash
-./run_cifar_train.py --dataset [DATASET] --model [MODEL]
-```
-Available values for `DATASET` are `cifar-10` and `cifar-100`.
-Available values for `MODEL` are `resnet-32/110/164` and `revnet-38/110/164`.
+Mathew Monfort, Bolei Zhou, Sarah Adel Bargal,
+Alex Andonian, Tom Yan, Kandan Ramakrishnan, Lisa Brown,
+Quanfu Fan, Dan Gutfruend, Carl Vondrick, Aude Oliva
 
-## ImageNet
-```
-# Run synchronous SGD training on 4 GPUs.
-./run_imagenet_train.py --model [MODEL]
 
-# Evaluate a trained model. Launch this on a separate GPU. 
-./run_imagenet_eval.py --id [EXPERIMENT ID]
-```
-Available values for `MODEL` are `resnet-50/101` and `revnet-54/104`.
+###########################################################
+Relevant files:
+###########################################################
+README.txt (this file)
+license.txt (the license file, this must be included)
+trainingSet.csv (the training set annotations)
+validationSet.csv (the validation set annotations)
+moments_categories.txt (class index order)
+training/ (folder containing training set mp4 videos)
+validation/ (folder containing validation set mp4 videos)
 
-## Provided Model Configs
-See `resnet/configs/cifar_configs.py` and `resnet/configs/imagenet_configs.py`
 
-## Pretrained RevNet Weights
-You can use our pretrained model weights for the use of other applications.
+###########################################################
+training/
+###########################################################
+The directory contains mp4 videos used for training.
+For example, the video filename "blocking/getty-karate-video-id635808620_4.mp4" is located at "training/blocking/getty-karate-video-id635808620_4.mp4"
 
-RevNet-104: 23.10% error rate on ImageNet validation set (top-1 single crop).
-```
-wget http://www.cs.toronto.edu/~mren/revnet/pretrained/revnet-104.tar.gz
-```
 
-## Future Releases
-* `tf.while_loop` implementation of RevNets, which achieves further memory
-  savings.
+###########################################################
+validation/
+###########################################################
+The directory contains mp4 videos used for validation.
 
-## Citation
-If you use our code, please consider cite the following:
-Aidan N. Gomez, Mengye Ren, Raquel Urtasun, Roger B. Grosse.
-The Reversible Residual Network: Backpropagation without Storing Actications.
-*CoRR*, abs/1707.04585, 2017.
 
-```
-@article{gomez17revnet,
-  author   = {Aidan N. Gomez and Mengye Ren and Raquel Urtasun and Roger B. Grosse},
-  title    = {The Reversible Residual Network: Backpropagation without Storing Activations}
-  journal  = {CoRR},
-  volume   = {abs/1707.04585},
-  year     = {2017},
-  url      = {https://arxiv.org/abs/1707.04585},
-}
-```
+###########################################################
+moments_categories.txt 
+###########################################################
+Contains each class label and index used for training
+
+
+###########################################################
+trainingSet.csv and validationSet.csv
+###########################################################
+Comma-seperated csv containing the video list and annotated label for the traning and validation sets.  The files contains the following fields:
+
+- filename:
+Unique filename for each video.
+- label:
+Annotated label for each video
+- annotation positive responses:
+Number of workers that agree with annotated label
+- annotation negative responses:
+Number of workers that disagree with annotated label
+
+###########################################################
+
+All cached videos can also be manually downloaded from http://data.csail.mit.edu/soundnet/actions3/.
+For example,
+http://data.csail.mit.edu/soundnet/actions3/dancing/yt-5of6ffo6-Bw_205.mp4
+for the training video "dancing/yt-5of6ffo6-Bw_205.mp4".
